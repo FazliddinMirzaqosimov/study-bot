@@ -2,7 +2,11 @@ const { Telegraf, session } = require("telegraf");
 const dotenv = require("dotenv");
 const { Stage } = require("telegraf/scenes");
 const { loginWizard, routeProtector } = require("./controllers/authController");
-const { createTest, takeATest } = require("./controllers/testControllers");
+const {
+  createTest,
+  takeATest,
+  getTestAllResults,
+} = require("./controllers/testControllers");
 const { menuKeyboard } = require("./variables");
 const Test = require("./modules/testModel");
 
@@ -38,5 +42,16 @@ bot.hears("Test Yaratish", (ctx) => {
 bot.hears("Test Yechish", (ctx) => {
   ctx.scene.enter("take-test");
 });
+
+bot.hears("Back", (ctx) => {
+  ctx.reply("Back to menu", {
+    reply_markup: {
+      keyboard: menuKeyboard,
+      resize_keyboard: true,
+    },
+  });
+});
+
+bot.on("callback_query", getTestAllResults);
 
 module.exports = bot;

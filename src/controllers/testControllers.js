@@ -7,6 +7,8 @@ const {
   addUserTookenTests,
   isUserTookenTest,
 } = require("../utils/userTookenTests");
+const { json } = require("express");
+const { default: mongoose } = require("mongoose");
 
 exports.createTest = new Scenes.WizardScene(
   "create-test",
@@ -47,6 +49,21 @@ exports.createTest = new Scenes.WizardScene(
       return;
     }
     ctx.wizard.state.data.docId = ctx.message.document.file_id;
+    ctx.reply("Enter the title of test");
+    return ctx.wizard.next();
+  },
+  (ctx) => {
+    if (ctx.message.text === "Back") {
+      ctx.reply("You leave a test choose one oof category that you like", {
+        reply_markup: {
+          resize_keyboard: true,
+          keyboard: menuKeyboard,
+        },
+      });
+      return ctx.scene.leave();
+    }
+
+    ctx.wizard.state.data.title = ctx.message.text;
     ctx.reply("Enter the answers like e.x: abcdadcbcdbacbacd");
     return ctx.wizard.next();
   },
@@ -111,7 +128,11 @@ exports.takeATest = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
   async (ctx) => {
-    if (ctx.message.text === "Back") {
+    if (ctx.callbackQuery?.data) {
+      this.getTestAllResults(ctx);
+      return ctx.scene.leave();
+    }
+    if (ctx.message && ctx.message.text === "Back") {
       ctx.reply("You leave a test choose one of category that you like", {
         reply_markup: {
           resize_keyboard: true,
@@ -120,20 +141,32 @@ exports.takeATest = new Scenes.WizardScene(
       });
       return ctx.scene.leave();
     }
+
     if (await isUserTookenTest(ctx.session.user._id, ctx.message.text)) {
-      ctx.reply("You took this test try another");
+      ctx.reply(
+        "You took this test try another. If you wanna see all results in this test click the button",
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "Results", callback_data: `id_${ctx.message.text}` }],
+            ],
+          },
+        }
+      );
+      return;
+    }
+    if (!mongoose.Types.ObjectId.isValid(ctx.message.text)) {
+      ctx.reply("This isnt valid id");
       return;
     }
     const test = await Test.findById(ctx.message.text);
-    console.log(test);
     if (!test) {
       ctx.reply("There is no test in this id. try another");
       return;
     }
-    console.log(test);
     ctx.wizard.state.data.test = test;
     ctx.sendDocument(test.docId[0], {
-      caption: "Enter the answers like e.x: abcdadcbcdbacbacd",
+      caption: `Title:"${test.title}"\nEnter the answers like e.x: abcdadcbcdbacbacd`,
     });
     return ctx.wizard.next();
   },
@@ -149,10 +182,11 @@ exports.takeATest = new Scenes.WizardScene(
         );
         return;
       }
-      await addUserTookenTests(ctx.session.user._id, {
-        userTrueAnswers: answers.trueAnswersCount,
-        test: ctx.wizard.state.data.test._id,
-      });
+      await addUserTookenTests(
+        ctx.session.user._id,
+        ctx.wizard.state.data.test._id,
+        answers.trueAnswersCount
+      );
 
       let message = "Your test results are:\n";
       answers.compareAnswers.forEach((ans) => {
@@ -164,8 +198,16 @@ exports.takeATest = new Scenes.WizardScene(
 
       ctx.reply(message, {
         reply_markup: {
-          resize_keyboard: true,
+          inline_keyboard: [
+            [
+              {
+                text: "Results",
+                callback_data: `id_${ctx.wizard.state.data.test._id}`,
+              },
+            ],
+          ],
           keyboard: menuKeyboard,
+          resize_keyboard: true,
         },
       });
     } catch (error) {
@@ -180,3 +222,25 @@ exports.takeATest = new Scenes.WizardScene(
     return ctx.scene.leave();
   }
 );
+
+exports.getTestAllResults = async (ctx) => {
+  try {
+    const test = await Test.findById(ctx.callbackQuery.data.replace("id_", ""))
+      .select("+tookenUsers")
+      .populate("tookenUsers.user");
+
+    let message = `Test has ${test.answers.length} questions and ${test.tookenUsers.length} people tooken:\n\n`;
+
+    test.tookenUsers
+      .sort((a, b) => b.userTrueAnswers - a.userTrueAnswers)
+      .forEach((user, i) => {
+        message += `\n${i + 1}. ${user.user.fullName} - ${
+          user.userTrueAnswers
+        }✅    ${(user.userTrueAnswers * 100) / test.answers.length}%`;
+      });
+
+    ctx.reply(message);
+  } catch (error) {
+    ctx.reply(error.message);
+  }
+};

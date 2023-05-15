@@ -5,9 +5,19 @@ const testSchema = new mongoose.Schema({
   imageId: [String],
   answers: String,
   authorId: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
-  students: {
-    type: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
+ 
+  tookenUsers: {
+    select: false,
     default: [],
+    type: [
+      {
+        userTrueAnswers: Number,
+        user: {
+          type: mongoose.SchemaTypes.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
   },
   title: String,
   created: Date,
