@@ -19,7 +19,4 @@ bot
     console.error("Error starting bot:", error);
   });
 
-app.use(bot.webhookCallback("/bot"));
-bot.telegram.setWebhook("https://study-bot-3ahq.onrender.com/bot");
-
 app.listen(PORT, "", () => console.log("Server is running in port " + PORT));
