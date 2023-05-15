@@ -29,31 +29,40 @@ exports.loginWizard = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
   async (ctx) => {
-    ctx.wizard.state.data.phoneNumber =
-      ctx.message.text || ctx.message.contact.phone_number;
-    const user = await User.create(ctx.wizard.state.data);
-    ctx.session.user = user;
+    try {
+      ctx.wizard.state.data.phoneNumber =
+        ctx.message.text || ctx.message.contact.phone_number;
+      const user = await User.create(ctx.wizard.state.data);
+      ctx.session.user = user;
 
-    ctx.reply(`You are logged in`, {
-      reply_markup: {
-        keyboard: menuKeyboard,
-        resize_keyboard: true,
-      },
-    });
+      ctx.reply(`You are logged in`, {
+        reply_markup: {
+          keyboard: menuKeyboard,
+          resize_keyboard: true,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+    }
+
     return ctx.scene.leave();
   }
 );
 
 // route protector
 exports.routeProtector = async (ctx, next) => {
-  if (ctx.session?.user) {
-    return next();
+  try {
+    if (ctx.session?.user) {
+      return next();
+    }
+    ctx.session = {};
+    const user = await User.findOne({ tgId: ctx.from.id });
+    if (!user) {
+      return ctx.scene.enter("login-wizard");
+    }
+    ctx.session.user = user;
+    next();
+  } catch (error) {
+    console.log(error);
   }
-  ctx.session = {};
-  const user = await User.findOne({ tgId: ctx.from.id });
-  if (!user) {
-    return ctx.scene.enter("login-wizard");
-  }
-  ctx.session.user = user;
-  next();
 };
