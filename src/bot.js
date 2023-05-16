@@ -28,7 +28,7 @@ bot.use(loginStage.middleware());
 bot.use(routeProtector);
 
 bot.start((ctx) => {
-  ctx.reply("O'!", {
+  ctx.reply("Assalomu aleykum!", {
     reply_markup: {
       keyboard: menuKeyboard,
       resize_keyboard: true,

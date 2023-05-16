@@ -169,7 +169,7 @@ exports.takeATest = new Scenes.WizardScene(
         answers.trueAnswersCount
       );
 
-      let message = "Sizning tst natijangiz:\n";
+      let message = "Sizning test natijangiz:\n";
       answers.compareAnswers.forEach((ans) => {
         message += `\n${ans.quesNumber} ${ans.userAnswer}${
           ans.userAnswer === ans.trueAnswer ? "✅" : "❌"
@@ -180,12 +180,7 @@ exports.takeATest = new Scenes.WizardScene(
       ctx.reply(message, {
         reply_markup: {
           inline_keyboard: [
-            [
-              {
-                text: "Results",
-                callback_data: `id_${ctx.wizard.state.data.test._id}`,
-              },
-            ],
+            [{ text: "Natijalar", callback_data: `id_${ctx.message.text}` }],
           ],
           keyboard: menuKeyboard,
           resize_keyboard: true,
