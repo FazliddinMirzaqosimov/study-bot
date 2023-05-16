@@ -28,7 +28,7 @@ bot.use(loginStage.middleware());
 bot.use(routeProtector);
 
 bot.start((ctx) => {
-  ctx.reply("Hello welcome to study bot!", {
+  ctx.reply("O'!", {
     reply_markup: {
       keyboard: menuKeyboard,
       resize_keyboard: true,

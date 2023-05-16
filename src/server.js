@@ -10,5 +10,10 @@ mongoose.connect(DB).then(() => {
 
 const PORT = process.env.PORT || 3001;
 
-bot.launch();
+if (process.env.IS_PRODUCTION) {
+  bot.launch();
+} else {
+  app.use(bot.webhookCallback("/bot"));
+  bot.telegram.setWebhook("https://study-bot-3ahq.onrender.com/bot");
+}
 app.listen(PORT, "", () => console.log("Server is running in port " + PORT));
