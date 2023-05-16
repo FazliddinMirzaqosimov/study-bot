@@ -10,13 +10,7 @@ mongoose.connect(DB).then(() => {
 
 const PORT = process.env.PORT || 3001;
 
-bot
-  .launch()
-  .then(() => {
-    console.log("Bot started");
-  })
-  .catch((error) => {
-    console.error("Error starting bot:", error);
-  });
+app.use(bot.webhookCallback("/bot"));
+bot.telegram.setWebhook("https://study-bot-3ahq.onrender.com/bot");
 
 app.listen(PORT, "", () => console.log("Server is running in port " + PORT));
