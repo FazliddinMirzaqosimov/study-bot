@@ -9,6 +9,7 @@ const {
 } = require("../utils/userTookenTests");
 const { json } = require("express");
 const { default: mongoose } = require("mongoose");
+const { isGlobalCommand } = require("./globalControllers");
 
 exports.createTest = new Scenes.WizardScene(
   "create-test",
@@ -19,7 +20,7 @@ exports.createTest = new Scenes.WizardScene(
         keyboard: [
           [
             {
-              text: "Back",
+              text: "Asosiy Menu",
             },
           ],
         ],
@@ -32,52 +33,34 @@ exports.createTest = new Scenes.WizardScene(
     return ctx.wizard.next();
   },
   (ctx) => {
-    if (ctx.message.text === "Back") {
-      ctx.reply("You leave a test choose one oof category that you like", {
-        reply_markup: {
-          resize_keyboard: true,
-          keyboard: menuKeyboard,
-        },
-      });
+    if (isGlobalCommand(ctx)) {
       return ctx.scene.leave();
     }
 
     if (!ctx.message.document) {
       ctx.reply(
-        "You didnt enter document! Please enter your question as doc format"
+        "Siz savollarni dokument formatda kiritmadingiz. Qayta urunib ko'ring!"
       );
       return;
     }
     ctx.wizard.state.data.docId = ctx.message.document.file_id;
-    ctx.reply("Enter the title of test");
+    ctx.reply("Test mavzusini kiriting!");
     return ctx.wizard.next();
   },
   (ctx) => {
-    if (ctx.message.text === "Back") {
-      ctx.reply("You leave a test choose one oof category that you like", {
-        reply_markup: {
-          resize_keyboard: true,
-          keyboard: menuKeyboard,
-        },
-      });
+    if (isGlobalCommand(ctx)) {
       return ctx.scene.leave();
     }
 
     ctx.wizard.state.data.title = ctx.message.text;
-    ctx.reply("Enter the answers like e.x: abcdadcbcdbacbacd");
+    ctx.reply("Javoblani quyidagicha kiriting: \nabcdadcbcdbacbacd");
     return ctx.wizard.next();
   },
   async (ctx) => {
     if (!ctx.message.text) {
-      ctx.reply("You have to enter answers in text e.x:acbdcbcdbaadbba");
+      ctx.reply("Javoblani quyidagicha kiriting: \nabcdadcbcdbacbacd");
       return;
-    } else if (ctx.message.text === "Back") {
-      ctx.reply("You leave a test choose one of category that you like", {
-        reply_markup: {
-          resize_keyboard: true,
-          keyboard: menuKeyboard,
-        },
-      });
+    } else if (isGlobalCommand(ctx)) {
       return ctx.scene.leave();
     }
 
@@ -85,7 +68,7 @@ exports.createTest = new Scenes.WizardScene(
       ctx.wizard.state.data.answers = ctx.message.text;
 
       const test = await Test.create(ctx.wizard.state.data);
-      ctx.reply(`Test succesfuly created! testid is ` + test._id, {
+      ctx.reply(`Test muvoffaqiyatli yaratildi! testingiz idisi:` + test._id, {
         reply_markup: {
           resize_keyboard: true,
           keyboard: menuKeyboard,
@@ -116,7 +99,7 @@ exports.takeATest = new Scenes.WizardScene(
         keyboard: [
           [
             {
-              text: "Back",
+              text: "Asosiy Menu",
             },
           ],
         ],
@@ -132,23 +115,17 @@ exports.takeATest = new Scenes.WizardScene(
       this.getTestAllResults(ctx);
       return ctx.scene.leave();
     }
-    if (ctx.message && ctx.message.text === "Back") {
-      ctx.reply("You leave a test choose one of category that you like", {
-        reply_markup: {
-          resize_keyboard: true,
-          keyboard: menuKeyboard,
-        },
-      });
+    if (isGlobalCommand(ctx)) {
       return ctx.scene.leave();
     }
 
     if (await isUserTookenTest(ctx.session.user._id, ctx.message.text)) {
       ctx.reply(
-        "You took this test try another. If you wanna see all results in this test click the button",
+        "Siz bu testni bajarip bo'lgansiz. Barcha natijalarni ko'rishi xohlasangiz quyidagi tugmani bosing!",
         {
           reply_markup: {
             inline_keyboard: [
-              [{ text: "Results", callback_data: `id_${ctx.message.text}` }],
+              [{ text: "Natijalar", callback_data: `id_${ctx.message.text}` }],
             ],
           },
         }
@@ -156,21 +133,25 @@ exports.takeATest = new Scenes.WizardScene(
       return;
     }
     if (!mongoose.Types.ObjectId.isValid(ctx.message.text)) {
-      ctx.reply("This isnt valid id");
+      ctx.reply("Bu to'g'ri id emas");
       return;
     }
     const test = await Test.findById(ctx.message.text);
     if (!test) {
-      ctx.reply("There is no test in this id. try another");
+      ctx.reply("Bunday iddagi test topilmadi.boshqasini sinab ko'ring.");
       return;
     }
     ctx.wizard.state.data.test = test;
     ctx.sendDocument(test.docId[0], {
-      caption: `Title:"${test.title}"\nEnter the answers like e.x: abcdadcbcdbacbacd`,
+      caption: `Mavzu: ${test.title}\nJavoblani quyidagicha kiriting: \nabcdadcbcdbacbacd`,
     });
     return ctx.wizard.next();
   },
   async (ctx) => {
+    if (isGlobalCommand(ctx)) {
+      return ctx.scene.leave();
+    }
+
     try {
       const answers = checkAnswers(
         ctx.message.text,
@@ -178,7 +159,7 @@ exports.takeATest = new Scenes.WizardScene(
       );
       if (answers.trueAnswersCount < 0) {
         ctx.reply(
-          `Your answer must be  ${ctx.wizard.state.data.test.answers.length}. But you  give me ${ctx.message.text.length}`
+          `Sizning javobingiz  ${ctx.wizard.state.data.test.answers.length}ta bo'lishi kerak.Siz ${ctx.message.text.length}ta javob jo'natdingiz`
         );
         return;
       }
@@ -188,13 +169,13 @@ exports.takeATest = new Scenes.WizardScene(
         answers.trueAnswersCount
       );
 
-      let message = "Your test results are:\n";
+      let message = "Sizning tst natijangiz:\n";
       answers.compareAnswers.forEach((ans) => {
         message += `\n${ans.quesNumber} ${ans.userAnswer}${
           ans.userAnswer === ans.trueAnswer ? "✅" : "❌"
         }`;
       });
-      message += "\n\nTrue answers are " + ctx.wizard.state.data.test.answers;
+      message += "\nTo'g'ri javoblar: " + ctx.wizard.state.data.test.answers;
 
       ctx.reply(message, {
         reply_markup: {
@@ -229,7 +210,7 @@ exports.getTestAllResults = async (ctx) => {
       .select("+tookenUsers")
       .populate("tookenUsers.user");
 
-    let message = `Test has ${test.answers.length} questions and ${test.tookenUsers.length} people tooken:\n\n`;
+    let message = `Testda ${test.answers.length}ta savollar va ${test.tookenUsers.length}ta topshirgan odamlar bor:\n\n`;
 
     test.tookenUsers
       .sort((a, b) => b.userTrueAnswers - a.userTrueAnswers)
@@ -243,4 +224,17 @@ exports.getTestAllResults = async (ctx) => {
   } catch (error) {
     ctx.reply(error.message);
   }
+};
+
+exports.getAllTests = async (ctx) => {
+  const tests = await Test.find();
+  let message = "Barcha testlar ro'yxati:\n\n";
+
+  tests.forEach(
+    (test, i) =>
+      (message += `\n${i + 1}) <b>Mavzu</b>: ${test.title}\n    <b>id</b>: <i>${
+        test._id
+      }</i>`)
+  );
+  ctx.replyWithHTML(message);
 };
