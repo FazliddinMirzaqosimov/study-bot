@@ -27,6 +27,7 @@ exports.changeName = new Scenes.WizardScene(
       ctx.reply("Sozlamalar bo'limi", {
         reply_markup: { resize_keyboard: true, keyboard: settingsKeyboard },
       });
+      return ctx.scene.leave();
     }
 
     ctx.session.user.fullName = ctx.message.text;
@@ -66,6 +67,7 @@ exports.changeNumber = new Scenes.WizardScene(
       ctx.reply("Sozlamalar bo'limi", {
         reply_markup: { resize_keyboard: true, keyboard: settingsKeyboard },
       });
+      return ctx.scene.leave();
     }
 
     ctx.session.user.phoneNumber = ctx.message.text;
